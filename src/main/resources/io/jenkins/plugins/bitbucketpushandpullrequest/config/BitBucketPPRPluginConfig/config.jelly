@@ -1,13 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-    <f:section title="${%BitBucket Push and Pull Request}">
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+    <f:section title="${%BitBucket Push and Pull Request}" name="bitbucket-ppr-plugin-configuration">
       <f:entry title="Hook URL" field="hookUrlTitle">
         <f:textbox field="hookUrl" />
       </f:entry>
       <f:entry title="${%Send build status to BitBucket}" field="notifyBitBucket">
         <f:checkbox default="true" />
       </f:entry>
+      <f:radioBlock checked="true" title="${%Use Git Credentials}" name="authMethod" value="git" inline="true"/>
+      <f:radioBlock checked="false" title="${%Use dedicated username/password}" name="authMethod" value="userpwd" inline="true">
+        <f:nested>
+          <f:entry title="${%Global Credentials}" field="globalCredentialsIdSsh">
+            <c:select />
+          </f:entry>
+        </f:nested>
+      </f:radioBlock>
+      <f:radioBlock checked="false" title="${%Use OAuth2 back-end}" name="authMethod" value="oauth" inline="true">
+        <f:nested>
+          <f:entry title="${%Global Credentials}" field="globalCredentialsIdOAuth">
+            <c:select />
+          </f:entry>
+        </f:nested>
+      </f:radioBlock>
     </f:section>
 </j:jelly>
