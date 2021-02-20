@@ -31,6 +31,8 @@ import org.scribe.model.OAuthConstants;
 import org.scribe.model.Token;
 import org.scribe.model.Verifier;
 
+import io.jenkins.plugins.bitbucketpushandpullrequest.config.auth.BitBucketPPRPluginConfigAuth;
+
 @Extension
 public class BitBucketPPRPluginConfig extends GlobalConfiguration {
   private static final Logger logger = Logger.getLogger(BitBucketPPRPluginConfig.class.getName());
@@ -46,6 +48,9 @@ public class BitBucketPPRPluginConfig extends GlobalConfiguration {
   public String globalCredentialsIdSsh;
 
   public BitBucketPPRPluginConfig() {
+    /* Set some default values */
+    this.notifyBitBucket = true;
+    this.authMethod = BitBucketPPRPluginConfigAuth.BBPPR_AUTH_GIT;
     logger.fine("Read bitbucket push and pull request plugin global configuration.");
     load();
   }

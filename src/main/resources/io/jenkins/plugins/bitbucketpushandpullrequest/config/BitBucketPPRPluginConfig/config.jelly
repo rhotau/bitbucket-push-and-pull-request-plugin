@@ -9,15 +9,15 @@
       <f:entry title="${%Send build status to BitBucket}" field="notifyBitBucket">
         <f:checkbox default="true" />
       </f:entry>
-      <f:radioBlock checked="true" title="${%Use Git Credentials}" name="authMethod" value="git" inline="true"/>
-      <f:radioBlock checked="false" title="${%Use dedicated username/password}" name="authMethod" value="userpwd" inline="true">
+      <f:radioBlock checked="${instance.authMethod == 'git'}" title="${%Use Git Credentials}" name="authMethod" value="git" inline="true"/>
+      <f:radioBlock checked="${instance.authMethod == 'userpwd'}" title="${%Use dedicated username/password}" name="authMethod" value="userpwd" inline="true">
         <f:nested>
           <f:entry title="${%Global Credentials}" field="globalCredentialsIdSsh">
             <c:select />
           </f:entry>
         </f:nested>
       </f:radioBlock>
-      <f:radioBlock checked="false" title="${%Use OAuth2 back-end}" name="authMethod" value="oauth" inline="true">
+      <f:radioBlock checked="${instance.authMethod == 'oauth2'}" title="${%Use OAuth2 back-end}" name="authMethod" value="oauth2" inline="true">
         <f:nested>
           <f:entry title="${%Global Credentials}" field="globalCredentialsIdOAuth">
             <c:select />
