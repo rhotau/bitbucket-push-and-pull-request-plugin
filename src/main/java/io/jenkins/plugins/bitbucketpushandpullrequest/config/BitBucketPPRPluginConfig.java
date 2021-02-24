@@ -1,37 +1,45 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2021 CloudBees, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package io.jenkins.plugins.bitbucketpushandpullrequest.config;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.logging.Logger;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.Item;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
-
-import hudson.util.ListBoxModel;
-import hudson.util.FormValidation;
-import hudson.model.Job;
-import hudson.model.Item;
+import io.jenkins.plugins.bitbucketpushandpullrequest.auth.BitBucketPPRPluginAuthDescriptor;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.QueryParameter;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardUsernameListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.DomainRequirement;
-import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import io.jenkins.plugins.bitbucketpushandpullrequest.auth.BitbucketOAuthApi;
-import io.jenkins.plugins.bitbucketpushandpullrequest.auth.BitbucketOAuthApiService;
-import org.scribe.model.OAuthConfig;
-import org.scribe.model.OAuthConstants;
-import org.scribe.model.Token;
-import org.scribe.model.Verifier;
-
-import io.jenkins.plugins.bitbucketpushandpullrequest.config.auth.BitBucketPPRPluginConfigAuth;
+import jenkins.model.Jenkins;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.Stapler;
 
 @Extension
 public class BitBucketPPRPluginConfig extends GlobalConfiguration {
@@ -42,15 +50,10 @@ public class BitBucketPPRPluginConfig extends GlobalConfiguration {
 
   public boolean notifyBitBucket;
 
-  public String authMethod;
-
-  public String globalCredentialsIdOAuth;
-  public String globalCredentialsIdSsh;
-
+  @DataBoundConstructor
   public BitBucketPPRPluginConfig() {
     /* Set some default values */
     this.notifyBitBucket = true;
-    this.authMethod = BitBucketPPRPluginConfigAuth.BBPPR_AUTH_GIT;
     logger.fine("Read bitbucket push and pull request plugin global configuration.");
     load();
   }
@@ -90,88 +93,16 @@ public class BitBucketPPRPluginConfig extends GlobalConfiguration {
     return notifyBitBucket;
   }
 
-  public String getGlobalCredentialsIdSsh() {
-    return globalCredentialsIdSsh;
+  public Collection<BitBucketPPRPluginAuthDescriptor> getAuthDescriptors() {
+    // Authentication methods are described by their own descriptor, this class
+    // is merely of conduct to build the RadioButtonList rendering from these
+    // respective subclasses.
+    StaplerRequest req = Stapler.getCurrentRequest();
+    Item it = (req != null) ? req.findAncestorObject(Item.class) : null;
+    // All authentication methods' Descriptor will extend BitBucketPPRPluginAuthDescriptor
+    return DescriptorVisibilityFilter.apply((it != null) ? it : Jenkins.get(), ExtensionList.lookup(BitBucketPPRPluginAuthDescriptor.class));
   }
-
-  @DataBoundSetter
-  public void setGlobalCredentialsIdSsh(String globalCredentialsIdSsh) {
-    this.globalCredentialsIdSsh = globalCredentialsIdSsh;
-  }
-
-  public String getGlobalCredentialsIdOAuth() {
-    return globalCredentialsIdOAuth;
-  }
-
-  public ListBoxModel doFillGlobalCredentialsIdSshItems() {
-    /* empty for now, just to get things started */
-    return new StandardUsernameListBoxModel();
-  }
-
-  @DataBoundSetter
-  public void setGlobalCredentialsIdOAuth(String globalCredentialsIdOAuth) {
-    this.globalCredentialsIdOAuth = globalCredentialsIdOAuth;
-  }
-
-  public ListBoxModel doFillGlobalCredentialsIdOAuthItems() {
-    Job owner = null;
-    List<DomainRequirement> apiEndpoint = URIRequirementBuilder.fromUri(BitbucketOAuthApi.OAUTH_ENDPOINT).build();
-
-    return new StandardUsernameListBoxModel()
-      .withEmptySelection()
-      .withAll(CredentialsProvider.lookupCredentials(StandardUsernamePasswordCredentials.class, owner, null, apiEndpoint));
-  }
-
-  public FormValidation doCheckGlobalCredentialsIdOAuth(@QueryParameter final String globalCredentialsIdOAuth) {
-    if (globalCredentialsIdOAuth.isEmpty()) {
-      return FormValidation.ok();
-    }
-
-    Job owner = null;
-    UsernamePasswordCredentials credentials = this.getCredentials(globalCredentialsIdOAuth, owner);
-
-    return this.checkCredentials(credentials);
-  }
-
-  private FormValidation checkCredentials(UsernamePasswordCredentials credentials) {
-    try {
-      OAuthConfig config = new OAuthConfig(credentials.getUsername(), credentials.getPassword().getPlainText());
-      BitbucketOAuthApiService apiService = (BitbucketOAuthApiService) new BitbucketOAuthApi().createService(config);
-      Verifier verifier = null;
-      Token token = apiService.getAccessToken(OAuthConstants.EMPTY_TOKEN, verifier);
-
-      if (token.isEmpty()) {
-          return FormValidation.error("Invalid Bitbucket OAuth credentials");
-      }
-    } catch (Exception e) {
-        return FormValidation.error(e.getClass() + e.getMessage());
-    }
-    return FormValidation.ok();
-  }
-
-  public static StandardUsernamePasswordCredentials getCredentials(String credentialsId, Job<?,?> owner) {
-    if (credentialsId != null) {
-      for (StandardUsernamePasswordCredentials c : CredentialsProvider.lookupCredentials(
-        StandardUsernamePasswordCredentials.class, owner, null,
-        URIRequirementBuilder.fromUri(BitbucketOAuthApi.OAUTH_ENDPOINT).build())) {
-        if (c.getId().equals(credentialsId)) {
-          return c;
-        }
-      }
-    }
-    return null;
-  }
-
-  @DataBoundSetter
-  public void setAuthMethod(String authMethod) {
-    logger.fine("Bitbucket push and pull request plugin status auth:" + authMethod);
-    this.authMethod = authMethod;
-  }
-
-  public String getAuthMethod() {
-    return authMethod;
-  }
-
+  
   @Override
   public String getDisplayName() {
     return "Bitbucket Push and Pull Request";

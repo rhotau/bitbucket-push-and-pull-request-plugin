@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package io.jenkins.plugins.bitbucketpushandpullrequest.auth;
+package io.jenkins.plugins.bitbucketpushandpullrequest.auth.api;
 
 import org.eclipse.jgit.util.Base64;
 import org.scribe.builder.api.DefaultApi20;
