@@ -32,4 +32,8 @@ public abstract class BitBucketPPRPluginAuth extends AbstractDescribableImpl<Bit
   public static String BBPPR_AUTH_OAUTH2 = "oauth2";
 
   protected String authMethod;
+
+  public String getAuthMethod() {
+    return authMethod;
+  }
 }

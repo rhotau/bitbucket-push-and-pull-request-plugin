@@ -9,6 +9,6 @@
       <f:entry title="${%Send build status to BitBucket}" field="notifyBitBucket">
         <f:checkbox default="true" />
       </f:entry>
-      <f:descriptorRadioList varName="auth" instance="${instance.auth}" descriptors="${descriptor.authDescriptors}"/>
+      <f:descriptorRadioList varName="authentication" instance="${instance.authentication}" descriptors="${descriptor.authenticationDescriptors}"/>
     </f:section>
 </j:jelly>

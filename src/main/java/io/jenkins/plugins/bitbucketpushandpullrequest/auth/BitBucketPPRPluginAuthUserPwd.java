@@ -71,13 +71,6 @@ public class BitBucketPPRPluginAuthUserPwd extends BitBucketPPRPluginAuth {
       return "Use dedicated username/password";
     }
 
-    @Override
-    public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-      req.bindJSON(this, formData);
-      save();
-      return true;
-    }
-
     public ListBoxModel doFillCredentialsIdItems() {
       /* empty for now, just to get things started */
       return new StandardUsernameListBoxModel();

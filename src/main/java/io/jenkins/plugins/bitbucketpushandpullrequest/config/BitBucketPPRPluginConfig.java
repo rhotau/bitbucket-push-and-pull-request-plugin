@@ -31,12 +31,13 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
+import io.jenkins.plugins.bitbucketpushandpullrequest.auth.BitBucketPPRPluginAuth;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
 import io.jenkins.plugins.bitbucketpushandpullrequest.auth.BitBucketPPRPluginAuthDescriptor;
-import java.util.ArrayList;
+import io.jenkins.plugins.bitbucketpushandpullrequest.auth.BitBucketPPRPluginAuthGit;
 import java.util.Collection;
-import java.util.List;
+import java.util.logging.Level;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
@@ -50,12 +51,25 @@ public class BitBucketPPRPluginConfig extends GlobalConfiguration {
 
   public boolean notifyBitBucket;
 
+  private BitBucketPPRPluginAuth authentication;
+
   @DataBoundConstructor
   public BitBucketPPRPluginConfig() {
     /* Set some default values */
+    this.authentication = new BitBucketPPRPluginAuthGit();
     this.notifyBitBucket = true;
     logger.fine("Read bitbucket push and pull request plugin global configuration.");
     load();
+  }
+  
+  public void setAuthentication(BitBucketPPRPluginAuth authentication) {
+    logger.log(Level.FINE, "Selected {0} authentication", authentication.getAuthMethod());
+    this.authentication = authentication;
+    save();
+  }
+  
+  public BitBucketPPRPluginAuth getAuthentication() {
+    return this.authentication;
   }
 
   public static BitBucketPPRPluginConfig getInstance() {
@@ -93,7 +107,7 @@ public class BitBucketPPRPluginConfig extends GlobalConfiguration {
     return notifyBitBucket;
   }
 
-  public Collection<BitBucketPPRPluginAuthDescriptor> getAuthDescriptors() {
+  public Collection<BitBucketPPRPluginAuthDescriptor> getAuthenticationDescriptors() {
     // Authentication methods are described by their own descriptor, this class
     // is merely of conduct to build the RadioButtonList rendering from these
     // respective subclasses.

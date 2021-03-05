@@ -84,13 +84,6 @@ public class BitBucketPPRPluginAuthOAuth2 extends BitBucketPPRPluginAuth {
       return "Use OAuth2 back-end";
     }
 
-    @Override
-    public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-      req.bindJSON(this, formData);
-      save();
-      return true;
-    }
-
     public ListBoxModel doFillCredentialsIdItems() {
       Job owner = null;
       List<DomainRequirement> apiEndpoint = URIRequirementBuilder.fromUri(BitbucketOAuthApi.OAUTH_ENDPOINT).build();

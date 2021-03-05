@@ -56,12 +56,5 @@ public class BitBucketPPRPluginAuthGit extends BitBucketPPRPluginAuth {
     public String getDisplayName() {
       return "Use Git Credentials";
     }
-
-    @Override
-    public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-      req.bindJSON(this, formData);
-      save();
-      return true;
-    }
   }
 }
