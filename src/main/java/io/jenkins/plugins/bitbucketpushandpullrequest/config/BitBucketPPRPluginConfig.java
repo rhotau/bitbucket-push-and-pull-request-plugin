@@ -1,15 +1,46 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2021 CloudBees, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package io.jenkins.plugins.bitbucketpushandpullrequest.config;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.logging.Logger;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
 import hudson.Extension;
 import hudson.ExtensionList;
+import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.Item;
+import io.jenkins.plugins.bitbucketpushandpullrequest.auth.BitBucketPPRPluginAuth;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
+import io.jenkins.plugins.bitbucketpushandpullrequest.auth.BitBucketPPRPluginAuthDescriptor;
+import io.jenkins.plugins.bitbucketpushandpullrequest.auth.BitBucketPPRPluginAuthGit;
+import java.util.Collection;
+import java.util.logging.Level;
+import jenkins.model.Jenkins;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.Stapler;
 
 @Extension
 public class BitBucketPPRPluginConfig extends GlobalConfiguration {
@@ -20,10 +51,25 @@ public class BitBucketPPRPluginConfig extends GlobalConfiguration {
 
   public boolean notifyBitBucket;
 
+  private BitBucketPPRPluginAuth authentication;
+
+  @DataBoundConstructor
   public BitBucketPPRPluginConfig() {
-    logger.fine("Read bitbucket push and pull request plugin global configuration.");
+    /* Set some default values */
+    this.authentication = new BitBucketPPRPluginAuthGit();
     this.notifyBitBucket = true;
+    logger.fine("Read bitbucket push and pull request plugin global configuration.");
     load();
+  }
+  
+  public void setAuthentication(BitBucketPPRPluginAuth authentication) {
+    logger.log(Level.FINE, "Selected {0} authentication", authentication.getAuthMethod());
+    this.authentication = authentication;
+    save();
+  }
+  
+  public BitBucketPPRPluginAuth getAuthentication() {
+    return this.authentication;
   }
 
   public static BitBucketPPRPluginConfig getInstance() {
@@ -57,6 +103,20 @@ public class BitBucketPPRPluginConfig extends GlobalConfiguration {
     this.notifyBitBucket = notifyBitBucket;
   }
 
+  public boolean getNotifyBitBucket() {
+    return notifyBitBucket;
+  }
+
+  public Collection<BitBucketPPRPluginAuthDescriptor> getAuthenticationDescriptors() {
+    // Authentication methods are described by their own descriptor, this class
+    // is merely of conduct to build the RadioButtonList rendering from these
+    // respective subclasses.
+    StaplerRequest req = Stapler.getCurrentRequest();
+    Item it = (req != null) ? req.findAncestorObject(Item.class) : null;
+    // All authentication methods' Descriptor will extend BitBucketPPRPluginAuthDescriptor
+    return DescriptorVisibilityFilter.apply((it != null) ? it : Jenkins.get(), ExtensionList.lookup(BitBucketPPRPluginAuthDescriptor.class));
+  }
+  
   @Override
   public String getDisplayName() {
     return "Bitbucket Push and Pull Request";
@@ -64,7 +124,7 @@ public class BitBucketPPRPluginConfig extends GlobalConfiguration {
 
   @Override
   public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-    req.bindJSON(this, formData);
+    req.bindJSON(this, formData.getJSONObject(BITBUCKET_PPR_PLUGIN_CONFIGURATION_ID));
     save();
     return true;
   }
